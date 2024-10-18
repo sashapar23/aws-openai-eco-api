@@ -1,0 +1,241 @@
+openapi: 3.0.0
+info:
+  title: AWS OpenAI Classifier ECO API
+  version: v0
+paths:
+  /classify:
+    get:
+      summary: Подбор классов
+      description: Для переданного наименования номенклатуры подбирает все классы в глубину на базе классификатора
+      parameters:
+        - name: itemName
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Наименование номенклатуры
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  input_item_name:
+                    type: string
+                  result:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        class_name:
+                          type: string
+                        class_code:
+                          type: string
+              example:
+                input_item_name: "Труба тип 3-820x9-К52 ГОСТ 20295-85"
+                result:
+                  - class_name: "ТРУБЫ СТАЛЬНЫЕ"
+                    class_code: "04"
+                  - class_name: "Трубы стальные круглые(кроме ВГП)"
+                    class_code: "0401"
+                  - class_name: "Трубы стальные электросварные"
+                    class_code: "040102"
+                  - class_name: "Трубы стальные сварные для магистральных газонефтепроводов"
+                    class_code: "04010202"
+                  
+  /pickAtt:
+    post:
+      summary: Подбор значений для аттрибутов
+      description: Для переданного наименования номенклатуры на базе конечного класса определяет значения аттрибутов
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                item_name:
+                  type: string
+                final_class_name:
+                  type: string
+                final_class_code:
+                  type: string
+            example:
+              item_name: "Труба тип 3-820x9-К52 ГОСТ 20295-85"
+              final_class_name: "Трубы стальные сварные для магистральных газонефтепроводов"
+              final_class_code: "04010202"
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  input_item_name:
+                    type: string
+                  input_final_class_name:
+                    type: string
+                  input_final_class_code:
+                    type: string
+                  result:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        attribute_name:
+                          type: string
+                        attribute_type:
+                          type: string
+                        attribute_example:
+                          type: string
+                        attribute_decicion:
+                          type: string
+              example:
+                input_item_name: "Труба тип 3-820x9-К52 ГОСТ 20295-85"
+                input_final_class_name: "Трубы стальные сварные для магистральных газонефтепроводов"
+                input_final_class_code: "04010202"
+                result:
+                  - attribute_name: "Вид продукции"
+                    attribute_type: "Текст"
+                    attribute_example: "Труба стальная"
+                    attribute_decicion: "Труба"
+                  - attribute_name: "Тип трубы"
+                    attribute_type: "Текст"
+                    attribute_example: "тип 1"
+                    attribute_decicion: "тип 3"
+                  - attribute_name: "Термообработка"
+                    attribute_type: "Текст"
+                    attribute_example: "У"
+                    attribute_decicion: null
+                  - attribute_name: "Диаметр, мм"
+                    attribute_type: "Число"
+                    attribute_example: "820"
+                    attribute_decicion: 820
+                  - attribute_name: "Толщина стенки, мм"
+                    attribute_type: "Число"
+                    attribute_example: "10"
+                    attribute_decicion: 9
+                  - attribute_name: "Класс прочности"
+                    attribute_type: "Текст"
+                    attribute_example: "К52"
+                    attribute_decicion: "К52"
+                  - attribute_name: "Марка металла или сплава"
+                    attribute_type: "Текст"
+                    attribute_example: "17Г1С"
+                    attribute_decicion: null
+                  - attribute_name: "Стандарт технических требований"
+                    attribute_type: "Текст"
+                    attribute_example: "ГОСТ 20295-85"
+                    attribute_decicion: "ГОСТ 20295-85"
+                  - attribute_name: "Тип покрытия"
+                    attribute_type: "Текст"
+                    attribute_example: "без покрытия"
+                    attribute_decicion: null
+
+  /updateClassifier:
+    post:
+      summary: Обновление данных в классификаторе
+      description: Обновляет данные в классификаторе (Redis). Если ключ уже существует, то данные по нему перезаписываются, если нет — создается новый ключ c переданными по нему данными
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                type: object
+                properties:
+                  key:
+                    type: string
+                  data:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                      name:
+                        type: string
+                      attributes:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            attribute_name:
+                              type: string
+                            attribute_type:
+                              type: string
+                            attribute_example:
+                              type: string
+            example:
+              - key: "01"
+                data:
+                  code: "01"
+                  name: "ЭЛЕКТРОЭНЕРГИЯ ТЕПЛОЭНЕРГИЯ УГОЛЬ АЗОТ ВОДОРОД ВОДА ПРИРОДНЫЙ ГАЗ"
+                  attributes: null
+              - key: "02"
+                data:
+                  code: "02"
+                  name: "ПРОКАТ ЧЕРНЫХ МЕТАЛЛОВ"
+                  attributes: null
+              - key: "0401"
+                data:
+                  code: "0401"
+                  name: "Трубы стальные круглые(кроме ВГП)"
+                  attributes: null
+              - key: "4699"
+                data:
+                  code: "4699"
+                  name: "Тара прочая"
+                  attributes:
+                    - attribute_name: "Вид продукции"
+                      attribute_type: "Текст"
+                      attribute_example: "Емкость"
+                    - attribute_name: "Материал"
+                      attribute_type: "Текст"
+                      attribute_example: "полипропиленовая"
+                    - attribute_name: "Объем, м3"
+                      attribute_type: "Число"
+                      attribute_example: null
+                    - attribute_name: "Размеры, мм"
+                      attribute_type: "Текст"
+                      attribute_example: "1500х1000х800"
+                    - attribute_name: "Комплектация"
+                      attribute_type: "Текст"
+                      attribute_example: null
+              - key: "30050203"
+                data:
+                  code: "30050203"
+                  name: "Муфты, сгоны, переходы для систем водопровода, отопления"
+                  attributes:
+                    - attribute_name: "Вид продукции"
+                      attribute_type: "Текст"
+                      attribute_example: "Муфта"
+                    - attribute_name: "Тип"
+                      attribute_type: "Текст"
+                      attribute_example: "переходная"
+                    - attribute_name: "Марка полимера"
+                      attribute_type: "Текст"
+                      attribute_example: "ПЭ100"
+                    - attribute_name: "Стандартное размерное отношение"
+                      attribute_type: "Текст"
+                      attribute_example: "SDR11"
+                    - attribute_name: "Размеры"
+                      attribute_type: "Текст"
+                      attribute_example: "450х225мм"
+                    - attribute_name: "Стандарт"
+                      attribute_type: "Текст"
+                      attribute_example: "ГОСТ 32415-2013"
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  result:
+                    type: string
+              example:
+                result: "OK"
